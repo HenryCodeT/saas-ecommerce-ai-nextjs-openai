@@ -9,6 +9,7 @@ import { CartList } from '@/components/store/CartList';
 import { ChatBox } from '@/components/store/ChatBox';
 import { PurchaseSummary } from '@/components/store/PurchaseSummary';
 import { useCart } from '@/hooks/useCart';
+import clsx from 'clsx';
 
 interface StorePageClientProps {
   store: Store;
@@ -95,11 +96,10 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
       <div className="lg:hidden mb-6 flex space-x-2 border-b border-gray-200">
         <button
           onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'products'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600'
-          }`}
+          className={`px-4 py-2 font-medium ${activeTab === 'products'
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'text-gray-600'
+            }`}
         >
           Products
         </button>
@@ -107,11 +107,10 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
           <>
             <button
               onClick={() => setActiveTab('cart')}
-              className={`px-4 py-2 font-medium flex items-center ${
-                activeTab === 'cart'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600'
-              }`}
+              className={`px-4 py-2 font-medium flex items-center ${activeTab === 'cart'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600'
+                }`}
             >
               Cart
               {getItemCount() > 0 && (
@@ -122,11 +121,10 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
             </button>
             <button
               onClick={() => setActiveTab('chat')}
-              className={`px-4 py-2 font-medium ${
-                activeTab === 'chat'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-600'
-              }`}
+              className={`px-4 py-2 font-medium ${activeTab === 'chat'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600'
+                }`}
             >
               Chat
             </button>
@@ -151,7 +149,8 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
         <div className="space-y-6">
           {/* Shopping Cart */}
           {isAuthenticated && (
-            <div className={activeTab !== 'cart' && 'hidden lg:block'} id="cart">
+            <div className={clsx("lg:col-span-2", activeTab !== "products" && "hidden lg:block")}>
+
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Shopping Cart
               </h2>
@@ -167,7 +166,7 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
 
           {/* AI Chat */}
           {isAuthenticated && (
-            <div className={activeTab !== 'chat' && 'hidden lg:block'}>
+            <div className={clsx(activeTab !== 'chat' && 'hidden lg:block')}>
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Ask Our AI Assistant
               </h2>

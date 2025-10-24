@@ -31,7 +31,7 @@ export function CartItemComponent({
       <div className="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-md overflow-hidden">
         {firstImage ? (
           <img
-            src={firstImage}
+            src={String(firstImage)}
             alt={product.name}
             className="w-full h-full object-cover"
           />

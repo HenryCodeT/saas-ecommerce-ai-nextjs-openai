@@ -35,7 +35,7 @@ export function ProductCardUser({ product, onAddToCart }: ProductCardUserProps) 
       <div className="aspect-square bg-gray-100 relative">
         {firstImage ? (
           <img
-            src={firstImage}
+            src={String(firstImage)}
             alt={product.name}
             className="w-full h-full object-cover"
           />

@@ -16,7 +16,7 @@ export function UsersPageClient({ store, users }: UsersPageClientProps) {
   const totalRevenue = users.reduce((sum, user) => {
     return sum + user.purchases.reduce((pSum, p) => {
       const amount = typeof p.amount === 'bigint' ? Number(p.amount) : p.amount;
-      return pSum + amount;
+      return pSum + Number(amount);
     }, 0);
   }, 0);
 
@@ -109,7 +109,7 @@ export function UsersPageClient({ store, users }: UsersPageClientProps) {
                         <div className="text-lg font-semibold text-gray-900">
                           ${user.purchases.reduce((sum, p) => {
                             const amount = typeof p.amount === 'bigint' ? Number(p.amount) : p.amount;
-                            return sum + amount;
+                            return sum + Number(amount);
                           }, 0).toFixed(2)}
                         </div>
                       </div>
