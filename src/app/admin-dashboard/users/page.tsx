@@ -5,6 +5,10 @@ import { getAllUsers } from '@/services/adminService';
 import { UsersTable } from '@/components/admin/UsersTable';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Users - Admin Dashboard',
   description: 'View all end users and their details',

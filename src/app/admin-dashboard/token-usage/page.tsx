@@ -5,6 +5,10 @@ import { getTokenUsageByStore } from '@/services/adminService';
 import { TokenUsageTable } from '@/components/admin/TokenUsageTable';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Token Usage - Admin Dashboard',
   description: 'View token usage by store',

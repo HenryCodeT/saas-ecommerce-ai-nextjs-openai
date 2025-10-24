@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { getStoreById, getStoreByName, getStoreStats } from '@/services/storeService';
 import { StoreDashboardClient } from './StoreDashboardClient';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function StoreDashboardPage({ params }: { params: { storeName: string } }) {
   console.log('params', params);
   const session = await getServerSession(authOptions);

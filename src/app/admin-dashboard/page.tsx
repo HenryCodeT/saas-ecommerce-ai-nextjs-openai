@@ -6,6 +6,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { AdminDashboardClient } from "./AdminDashboardClient";
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * Admin Dashboard Page
  *

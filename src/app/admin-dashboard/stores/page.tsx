@@ -5,6 +5,10 @@ import { getAllStoresWithUsers } from '@/services/adminService';
 import { StoresTable } from '@/components/admin/StoresTable';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata = {
   title: 'Stores - Admin Dashboard',
   description: 'View all stores and their details',

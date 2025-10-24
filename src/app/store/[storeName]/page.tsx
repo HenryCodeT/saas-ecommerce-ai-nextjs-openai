@@ -7,6 +7,10 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { StorePageClient } from "./StorePageClient";
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * Store Page (End User View)
  *

@@ -7,6 +7,9 @@ import { getServerSession } from "next-auth";
 import { authOptions, getRedirectUrl } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+
 /**
  * Login Page
  * 

@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { getStoreById } from '@/services/storeService';
 import { ProductsPageClient } from './ProductsPageClient';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ProductsPage() {
   const session = await getServerSession(authOptions);
 

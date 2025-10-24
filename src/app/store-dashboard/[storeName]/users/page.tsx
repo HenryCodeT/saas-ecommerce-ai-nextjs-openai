@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { getStoreById, getStoreByName, getStoreUsers } from '@/services/storeService';
 import { UsersPageClient } from './UsersPageClient';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function UsersPage() {
   const session = await getServerSession(authOptions);
   console.log("session login", session);

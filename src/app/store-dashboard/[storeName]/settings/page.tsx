@@ -4,6 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { getStoreById, getStoreByName } from '@/services/storeService';
 import { SettingsPageClient } from './SettingsPageClient';
 
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
 
