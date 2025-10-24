@@ -1,0 +1,188 @@
+// Prisma schema for SaaS E-commerce AI
+// This schema defines the database structure for Phase 1 (Authentication)
+// and sets up the foundation for future phases
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User roles as defined in the document:
+// - ADMIN: Global dashboard access
+// - CLIENT: Store owner/manager
+// - END_USER: Customer accessing store
+enum UserRole {
+  ADMIN
+  CLIENT
+  END_USER
+}
+
+// User status for account management
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// Users table - Core authentication and user management
+// Stores user credentials, role, and relationship to stores
+model User {
+  id            String      @id @default(cuid())
+  name          String
+  email         String      @unique
+  passwordHash  String      @map("password_hash")
+  role          UserRole    @default(END_USER)
+  status        UserStatus  @default(ACTIVE)
+  
+  // Relationship to store (for END_USER and CLIENT roles)
+  // END_USER: registeredAt store
+  // CLIENT: owns/manages store
+  storeId       String?     @map("store_id")
+  store         Store?      @relation("StoreUsers", fields: [storeId], references: [id])
+  
+  // For CLIENT role: stores they own
+  ownedStores   Store[]     @relation("StoreOwner")
+  
+  // Timestamps
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  
+  // Future relations (for upcoming phases)
+  tokenUsage    TokenUsage[]
+  aiQueries     AIQuery[]
+  activityLogs  ActivityLog[]
+  billingHistory BillingHistory[]
+  
+  @@map("users")
+}
+
+// Store status
+enum StoreStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// Stores table - Store information and configuration
+// Each CLIENT user can own one or more stores
+model Store {
+  id            String      @id @default(cuid())
+  storeName     String      @unique @map("store_name")
+  url           String      @unique // URL slug for accessing the store
+  
+  // Store owner (CLIENT role)
+  clientUserId  String      @map("client_user_id")
+  clientUser    User        @relation("StoreOwner", fields: [clientUserId], references: [id])
+  
+  // Store information
+  logoUrl       String?     @map("logo_url")
+  city          String?
+  description   String?     @db.Text
+  category      String?
+  businessHours String?     @map("business_hours") @db.Text
+  
+  status        StoreStatus @default(ACTIVE)
+  
+  // Timestamps
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  
+  // Relations
+  users         User[]      @relation("StoreUsers") // END_USERS registered at this store
+  products      Product[]
+  tokenUsage    TokenUsage[]
+  
+  @@map("stores")
+}
+
+// Products table (for future phases)
+model Product {
+  id          String    @id @default(cuid())
+  storeId     String    @map("store_id")
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?   @db.Text
+  price       Decimal   @db.Decimal(10, 2)
+  stock       Int       @default(0)
+  sku         String?   @unique
+  images      Json?     // Array of image URLs
+  tags        Json?     // Array of tags
+  
+  isActive    Boolean   @default(true) @map("is_active")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  aiQueries   AIQuery[]
+  
+  @@map("products")
+}
+
+// TokenUsage table (for future phases)
+model TokenUsage {
+  id          String    @id @default(cuid())
+  storeId     String    @map("store_id")
+  store       Store     @relation(fields: [storeId], references: [id])
+  
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  
+  tokensUsed  Int       @map("tokens_used")
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  @@map("token_usage")
+}
+
+// AIQueries table (for future phases)
+model AIQuery {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  
+  productId   String?   @map("product_id")
+  product     Product?  @relation(fields: [productId], references: [id])
+  
+  question    String    @db.Text
+  answer      String    @db.Text
+  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  @@map("ai_queries")
+}
+
+// ActivityLogs table (for auditing purchases and critical actions)
+model ActivityLog {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  
+  actionType  String    @map("action_type") // e.g., "PURCHASE", "LOGIN", "PRODUCT_CREATE"
+  targetId    String?   @map("target_id")   // ID of the affected resource
+  metadata    Json?     // Additional data about the action
+  
+  timestamp   DateTime  @default(now())
+  
+  @@map("activity_logs")
+}
+
+// BillingHistory table - Track billing and invoices
+model BillingHistory {
+  id            String    @id @default(cuid())
+  clientUserId  String    @map("client_user_id")
+  clientUser    User      @relation(fields: [clientUserId], references: [id])
+  invoiceNumber String    @map("invoice_number") @unique
+  amount        Decimal   @db.Decimal(10, 2)
+  status        String    // e.g., "PENDING", "PAID", "OVERDUE", "CANCELLED"
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  dueDate       DateTime  @map("due_date")
+  
+  @@map("billing_history")
+}
