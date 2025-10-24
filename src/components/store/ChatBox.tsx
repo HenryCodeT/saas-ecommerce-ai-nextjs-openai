@@ -1,17 +1,25 @@
 'use client';
 
-import { useChat, ChatMessage as ChatMessageType } from '@/hooks/useChat';
+import { useChat, ChatMessage as ChatMessageType, ProductFilter } from '@/hooks/useChat';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { useRef, useEffect } from 'react';
 
 interface ChatBoxProps {
   storeId: string;
+  onProductFilter?: (filter: ProductFilter | null) => void;
 }
 
-export function ChatBox({ storeId }: ChatBoxProps) {
-  const { messages, isLoading, sendMessage } = useChat(storeId);
+export function ChatBox({ storeId, onProductFilter }: ChatBoxProps) {
+  const { messages, isLoading, productFilter, sendMessage, clearFilter } = useChat(storeId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Notify parent when product filter changes
+  useEffect(() => {
+    if (onProductFilter) {
+      onProductFilter(productFilter);
+    }
+  }, [productFilter, onProductFilter]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

@@ -37,11 +37,12 @@ export async function POST(req: NextRequest) {
     const response = await getAIResponse({
       storeId,
       userId: session.user.id,
+      userRole: session.user.role,
       message,
       history,
     });
 
-    return NextResponse.json({ message: response });
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(

@@ -1,0 +1,141 @@
+{
+  "mcp_tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "filter_products",
+        "description": "Filter and search products in the current store based on user criteria like brand, category, price range, color, or general search terms. Returns matching products with details.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "General search term to match against product name, description, or tags"
+            },
+            "brand": {
+              "type": "string",
+              "description": "Filter by brand name"
+            },
+            "category": {
+              "type": "string",
+              "description": "Filter by product category"
+            },
+            "color": {
+              "type": "string",
+              "description": "Filter by color"
+            },
+            "price_min": {
+              "type": "number",
+              "description": "Minimum price filter"
+            },
+            "price_max": {
+              "type": "number",
+              "description": "Maximum price filter"
+            },
+            "in_stock_only": {
+              "type": "boolean",
+              "description": "Only return products that are in stock",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "show_product_details",
+        "description": "Get detailed information about a specific product including name, description, price, stock, images, and tags",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "description": "The unique ID of the product to retrieve"
+            }
+          },
+          "required": ["product_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "add_to_cart",
+        "description": "Add a product to the user's shopping cart. This is a conceptual operation that confirms the intent - the actual cart is managed by the UI.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "description": "The ID of the product to add to cart"
+            },
+            "quantity": {
+              "type": "number",
+              "description": "Quantity to add (default: 1)",
+              "default": 1
+            }
+          },
+          "required": ["product_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "remove_from_cart",
+        "description": "Remove a product from the user's shopping cart",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "description": "The ID of the product to remove"
+            }
+          },
+          "required": ["product_id"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_cart_summary",
+        "description": "Get a summary of the current cart contents",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "save_ai_query",
+        "description": "Internal tool to log AI queries and responses for analytics",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "user_id": {
+              "type": "string",
+              "description": "User ID"
+            },
+            "question": {
+              "type": "string",
+              "description": "User question"
+            },
+            "answer": {
+              "type": "string",
+              "description": "AI response"
+            },
+            "product_id": {
+              "type": "string",
+              "description": "Related product ID (optional)"
+            }
+          },
+          "required": ["user_id", "question", "answer"]
+        }
+      }
+    }
+  ]
+}

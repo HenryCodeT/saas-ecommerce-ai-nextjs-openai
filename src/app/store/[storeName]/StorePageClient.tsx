@@ -9,6 +9,7 @@ import { CartList } from '@/components/store/CartList';
 import { ChatBox } from '@/components/store/ChatBox';
 import { PurchaseSummary } from '@/components/store/PurchaseSummary';
 import { useCart } from '@/hooks/useCart';
+import { ProductFilter } from '@/hooks/useChat';
 import clsx from 'clsx';
 
 interface StorePageClientProps {
@@ -25,6 +26,7 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'cart' | 'chat'>('chat');
   const [currentPage, setCurrentPage] = useState(1);
+  const [aiProductFilter, setAiProductFilter] = useState<ProductFilter | null>(null);
   const productsRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -37,16 +39,53 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
     getItemCount,
   } = useCart();
 
-  // Calculate pagination
+  // Filter products based on AI chat recommendations
+  const filteredProducts = useMemo(() => {
+    if (!aiProductFilter?.productIds || aiProductFilter.productIds.length === 0) {
+      return products;
+    }
+    // Filter to only show products that AI recommended
+    return products.filter(p => aiProductFilter.productIds!.includes(p.id));
+  }, [products, aiProductFilter]);
+
+  // Calculate pagination based on filtered products
   const totalPages = useMemo(() => {
-    return Math.ceil(products.length / PRODUCTS_PER_PAGE);
-  }, [products.length]);
+    return Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  }, [filteredProducts.length]);
 
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
     const endIndex = startIndex + PRODUCTS_PER_PAGE;
-    return products.slice(startIndex, endIndex);
-  }, [products, currentPage]);
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage]);
+
+  // Handle AI product filter updates
+  const handleProductFilter = (filter: ProductFilter | null) => {
+    console.log('[StorePageClient] Received product filter:', {
+      hasFilter: !!filter,
+      productCount: filter?.productIds?.length || 0,
+      productIds: filter?.productIds
+    });
+
+    setAiProductFilter(filter);
+    setCurrentPage(1); // Reset to first page when filter changes
+
+    // Scroll to products section when AI filters products
+    if (filter?.productIds && filter.productIds.length > 0) {
+      console.log('[StorePageClient] Scrolling to products section');
+      setTimeout(() => {
+        if (productsRef.current) {
+          productsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    }
+  };
+
+  // Clear AI filter
+  const handleClearFilter = () => {
+    setAiProductFilter(null);
+    setCurrentPage(1);
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -164,7 +203,7 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Ask Our AI Assistant
               </h2>
-              <ChatBox storeId={store.id} />
+              <ChatBox storeId={store.id} onProductFilter={handleProductFilter} />
             </div>
           </div>
 
@@ -218,11 +257,51 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
         ref={productsRef}
         className={clsx(activeTab !== 'products' && 'hidden lg:block')}
       >
+        {/* AI Filter Indicator */}
+        {aiProductFilter && aiProductFilter.productIds && aiProductFilter.productIds.length > 0 && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <span className="text-blue-600 text-xl mr-2">🤖</span>
+                <div>
+                  <p className="font-semibold text-blue-900">
+                    AI Filter Active
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} recommended by AI
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleClearFilter}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded-md hover:bg-blue-100 transition-colors"
+              >
+                Clear Filter
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Our Products</h2>
-          <p className="text-gray-600 mt-2 text-base">
-            Browse our collection of {products.length} {products.length === 1 ? 'product' : 'products'}
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Our Products</h2>
+              <p className="text-gray-600 mt-2 text-base">
+                {filteredProducts.length > 0 ? (
+                  <>
+                    Showing {((currentPage - 1) * PRODUCTS_PER_PAGE) + 1}-{Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length)} of {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+                  </>
+                ) : (
+                  'No products available'
+                )}
+              </p>
+            </div>
+            {totalPages > 1 && (
+              <div className="text-sm text-gray-500">
+                Page {currentPage} of {totalPages}
+              </div>
+            )}
+          </div>
         </div>
         <ProductList
           products={paginatedProducts}
