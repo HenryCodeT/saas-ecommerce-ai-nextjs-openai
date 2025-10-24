@@ -1,7 +1,7 @@
 'use client';
 
 import { Store, Product } from '@prisma/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { StorePageLayout } from '@/components/store/StorePageLayout';
 import { ProductList } from '@/components/store/ProductList';
@@ -16,12 +16,16 @@ interface StorePageClientProps {
   initialProducts: Product[];
 }
 
+const PRODUCTS_PER_PAGE = 9;
+
 export function StorePageClient({ store, initialProducts }: StorePageClientProps) {
   const { data: session } = useSession();
   const [products] = useState<Product[]>(initialProducts);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'cart' | 'chat'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'cart' | 'chat'>('chat');
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsRef = useRef<HTMLDivElement>(null);
 
   const {
     items,
@@ -32,6 +36,25 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
     getTotal,
     getItemCount,
   } = useCart();
+
+  // Calculate pagination
+  const totalPages = useMemo(() => {
+    return Math.ceil(products.length / PRODUCTS_PER_PAGE);
+  }, [products.length]);
+
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    const endIndex = startIndex + PRODUCTS_PER_PAGE;
+    return products.slice(startIndex, endIndex);
+  }, [products, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to products section
+    if (productsRef.current) {
+      productsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const handleAddToCart = (product: Product) => {
     addItem(product, 1);
@@ -94,17 +117,17 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
 
       {/* Tabs (for mobile) */}
       <div className="lg:hidden mb-6 flex space-x-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 font-medium ${activeTab === 'products'
-            ? 'border-b-2 border-blue-600 text-blue-600'
-            : 'text-gray-600'
-            }`}
-        >
-          Products
-        </button>
         {isAuthenticated && (
           <>
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`px-4 py-2 font-medium ${activeTab === 'chat'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-gray-600'
+                }`}
+            >
+              Chat
+            </button>
             <button
               onClick={() => setActiveTab('cart')}
               className={`px-4 py-2 font-medium flex items-center ${activeTab === 'cart'
@@ -119,38 +142,35 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
                 </span>
               )}
             </button>
-            <button
-              onClick={() => setActiveTab('chat')}
-              className={`px-4 py-2 font-medium ${activeTab === 'chat'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600'
-                }`}
-            >
-              Chat
-            </button>
           </>
         )}
+        <button
+          onClick={() => setActiveTab('products')}
+          className={`px-4 py-2 font-medium ${activeTab === 'products'
+            ? 'border-b-2 border-blue-600 text-blue-600'
+            : 'text-gray-600'
+            }`}
+        >
+          Products
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Products - Left Column */}
-        <div className={`lg:col-span-2 ${activeTab !== 'products' && 'hidden lg:block'}`}>
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">Our Products</h2>
-            <p className="text-gray-600 mt-1">
-              Browse our collection of {products.length} products
-            </p>
+      {/* Chat & Cart - Top Section (Side by Side) */}
+      {isAuthenticated && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* AI Chat Assistant */}
+          <div className={clsx(activeTab !== 'chat' && 'hidden lg:block')}>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 h-full">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Ask Our AI Assistant
+              </h2>
+              <ChatBox storeId={store.id} />
+            </div>
           </div>
-          <ProductList products={products} onAddToCart={handleAddToCart} />
-        </div>
 
-        {/* Right Column - Cart & Chat */}
-        <div className="space-y-6">
           {/* Shopping Cart */}
-          {isAuthenticated && (
-            <div className={clsx("lg:col-span-2", activeTab !== "products" && "hidden lg:block")}>
-
+          <div className={clsx(activeTab !== 'cart' && 'hidden lg:block')}>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 h-full">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Shopping Cart
               </h2>
@@ -162,45 +182,55 @@ export function StorePageClient({ store, initialProducts }: StorePageClientProps
                 total={getTotal()}
               />
             </div>
-          )}
-
-          {/* AI Chat */}
-          {isAuthenticated && (
-            <div className={clsx(activeTab !== 'chat' && 'hidden lg:block')}>
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Ask Our AI Assistant
-              </h2>
-              <ChatBox storeId={store.id} />
-            </div>
-          )}
-
-          {/* Login Prompt for Unauthenticated Users */}
-          {!isAuthenticated && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-900 mb-3">
-                Sign in to shop!
-              </h3>
-              <p className="text-sm text-blue-800 mb-4">
-                Create an account to add products to your cart, chat with our AI
-                assistant, and make purchases.
-              </p>
-              <div className="space-y-2">
-                <a
-                  href={`/store/${store.url}/register`}
-                  className="block w-full bg-blue-600 text-white text-center px-4 py-2 rounded-md hover:bg-blue-700 font-medium"
-                >
-                  Create Account
-                </a>
-                <a
-                  href="/login"
-                  className="block w-full bg-white text-blue-600 text-center px-4 py-2 rounded-md border border-blue-600 hover:bg-blue-50 font-medium"
-                >
-                  Sign In
-                </a>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
+      )}
+
+      {/* Login Prompt for Unauthenticated Users */}
+      {!isAuthenticated && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 max-w-md mx-auto">
+          <h3 className="font-semibold text-blue-900 mb-3">
+            Sign in to shop!
+          </h3>
+          <p className="text-sm text-blue-800 mb-4">
+            Create an account to add products to your cart, chat with our AI
+            assistant, and make purchases.
+          </p>
+          <div className="space-y-2">
+            <a
+              href={`/store/${store.url}/register`}
+              className="block w-full bg-blue-600 text-white text-center px-4 py-2 rounded-md hover:bg-blue-700 font-medium"
+            >
+              Create Account
+            </a>
+            <a
+              href="/login"
+              className="block w-full bg-white text-blue-600 text-center px-4 py-2 rounded-md border border-blue-600 hover:bg-blue-50 font-medium"
+            >
+              Sign In
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Products - Full Width Section Below */}
+      <div
+        ref={productsRef}
+        className={clsx(activeTab !== 'products' && 'hidden lg:block')}
+      >
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold text-gray-900">Our Products</h2>
+          <p className="text-gray-600 mt-2 text-base">
+            Browse our collection of {products.length} {products.length === 1 ? 'product' : 'products'}
+          </p>
+        </div>
+        <ProductList
+          products={paginatedProducts}
+          onAddToCart={handleAddToCart}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {/* Purchase Summary Modal */}

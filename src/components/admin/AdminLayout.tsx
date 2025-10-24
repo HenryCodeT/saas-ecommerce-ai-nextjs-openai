@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -32,12 +33,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Link
-                href="/api/auth/signout"
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
                 Sign Out
-              </Link>
+              </button>
             </div>
           </div>
         </div>

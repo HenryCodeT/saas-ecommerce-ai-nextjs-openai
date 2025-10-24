@@ -282,7 +282,7 @@ export function RegisterForm() {
       </div>
 
       {/* Role Selection */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="role">Account Type</Label>
         <select
           id="role"
@@ -300,7 +300,7 @@ export function RegisterForm() {
             ? "Create and manage your own online store"
             : "Full system administration access"}
         </p>
-      </div>
+      </div> */}
 
       {/* Store Information (only for CLIENT role) */}
       {formData.role === "CLIENT" && (

@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 interface StoreDashboardLayoutProps {
   children: ReactNode;
@@ -65,12 +66,12 @@ export function StoreDashboardLayout({ children, storeName, storeUrl }: StoreDas
               >
                 View Store
               </Link>
-              <Link
-                href="/api/auth/signout"
+              <button
+                onClick={() => signOut({ callbackUrl: '/login' })}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
                 Sign Out
-              </Link>
+              </button>
             </div>
           </div>
         </div>

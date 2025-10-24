@@ -68,7 +68,7 @@ export function StorePageLayout({ store, children }: StorePageLayoutProps) {
                       {session.user.name}
                     </span>
                     <button
-                      onClick={() => signOut({ callbackUrl: '/' })}
+                      onClick={() => signOut({ callbackUrl: '/login' })}
                       className="text-sm text-gray-700 hover:text-gray-900"
                     >
                       Sign Out

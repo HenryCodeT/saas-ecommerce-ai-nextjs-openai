@@ -108,34 +108,49 @@ export const authService = {
 
       // Create user and store in a transaction
       const result = await prisma.$transaction(async (tx) => {
-        // Create user
-        const user = await tx.user.create({
-          data: {
-            name: data.name,
-            email: data.email,
-            passwordHash,
-            role: data.role,
-            status: UserStatus.ACTIVE,
-            storeId: data.role === "END_USER" && data.storeId ? data.storeId : null,
-          },
-        });
-
-        // If CLIENT, create associated store
         let store = null;
+        let user;
+
+        // If CLIENT, create store first to get storeId
         if (data.role === "CLIENT" && data.storeName && data.storeUrl) {
+          // Create a temporary user to get userId for store creation
+          const tempUser = await tx.user.create({
+            data: {
+              name: data.name,
+              email: data.email,
+              passwordHash,
+              role: data.role,
+              status: UserStatus.ACTIVE,
+              storeId: null, // Will be updated after store creation
+            },
+          });
+
+          // Create store with the user's ID
           store = await tx.store.create({
             data: {
               storeName: data.storeName,
               url: data.storeUrl,
-              clientUserId: user.id,
+              clientUserId: tempUser.id,
               status: "ACTIVE",
             },
           });
 
           // Update user with storeId
-          await tx.user.update({
-            where: { id: user.id },
+          user = await tx.user.update({
+            where: { id: tempUser.id },
             data: { storeId: store.id },
+          });
+        } else {
+          // For non-CLIENT roles (ADMIN or END_USER), create user directly
+          user = await tx.user.create({
+            data: {
+              name: data.name,
+              email: data.email,
+              passwordHash,
+              role: data.role,
+              status: UserStatus.ACTIVE,
+              storeId: data.role === "END_USER" && data.storeId ? data.storeId : null,
+            },
           });
         }
 
@@ -148,7 +163,7 @@ export const authService = {
             metadata: {
               email: user.email,
               role: user.role,
-              storeId: store?.id,
+              storeId: store?.id || user.storeId,
             },
           },
         });
@@ -157,9 +172,10 @@ export const authService = {
       });
 
       // Get redirect URL based on role
+      // Use the storeId from the result.user which now has the correct storeId
       const redirectUrl = await getRedirectUrl(
         result.user.role,
-        result.user.storeId 
+        result.user.storeId
       );
 
       return {
