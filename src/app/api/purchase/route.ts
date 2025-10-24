@@ -10,14 +10,23 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
+    console.log('[Purchase] Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      userStoreId: session?.user?.storeId
+    });
+
     if (!session?.user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Please log in' },
         { status: 401 }
       );
     }
 
     if (session.user.role !== 'END_USER') {
+      console.error('[Purchase] Invalid role:', session.user.role);
       return NextResponse.json(
         { error: 'Only end users can make purchases' },
         { status: 403 }
@@ -25,6 +34,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { storeId, items, totalAmount } = await req.json();
+
+    console.log('[Purchase] Request data:', {
+      storeId,
+      itemCount: items?.length,
+      totalAmount,
+      userId: session.user.id,
+      userStoreId: session.user.storeId,
+      userRole: session.user.role
+    });
 
     if (!storeId || !items || !totalAmount) {
       return NextResponse.json(
@@ -35,8 +53,14 @@ export async function POST(req: NextRequest) {
 
     // Verify user belongs to this store
     if (session.user.storeId !== storeId) {
+      console.error('[Purchase] Store mismatch:', {
+        userStoreId: session.user.storeId,
+        requestStoreId: storeId,
+        userId: session.user.id,
+        userRole: session.user.role
+      });
       return NextResponse.json(
-        { error: 'Forbidden' },
+        { error: 'You can only make purchases in your registered store' },
         { status: 403 }
       );
     }

@@ -71,12 +71,22 @@ This implementation covers **all 4 phases** of the project as described in the C
    - Purchase simulation (no real payments)
    - Order history tracking
 
-3. **AI-Powered Chat**
-   - OpenAI-powered product assistant
+3. **AI-Powered Shopping Assistant**
+   - **Vercel AI SDK** with structured tool calling (MCP)
+   - Natural language product search and filtering
+   - Interactive product recommendations with emojis
    - Context-aware responses about products and store
+   - **Smart UI Filtering**: When AI searches products, the product grid below automatically filters to show matching items
    - Token usage tracking per query
    - Conversation history
    - **Scope**: Users can only see products and information from their registered store
+
+   **AI Capabilities (via Tools)**:
+   - `filterProducts` - Search products by name, brand, category, price range
+   - `showProductDetails` - Get detailed product information
+   - `addToCart` - Add items to cart via conversation
+   - `removeFromCart` - Remove items from cart
+   - `getCartSummary` - View cart contents
 
 4. **Registration via Store URL**
    - End users can only register through `/store/{store-name}`
@@ -90,7 +100,8 @@ This implementation covers **all 4 phases** of the project as described in the C
 - **Authentication**: NextAuth.js v4
 - **Database**: Supabase PostgreSQL
 - **ORM**: Prisma
-- **AI Integration**: OpenAI SDK (GPT-4/5)
+- **AI Integration**: Vercel AI SDK v5 + OpenAI (GPT-4o-mini)
+- **AI Tools**: Model Context Protocol (MCP) for structured tool calling
 - **Storage**: Supabase Storage (images, logos)
 - **Password Security**: bcryptjs
 - **Form Validation**: Zod
@@ -280,9 +291,26 @@ This creates:
 **As END_USER** (user@example.com):
 - Browse products at your store
 - Add products to cart
-- Simulate purchases
-- Chat with AI about products
+- Chat with AI: "Show me shoes", "Add Brown Shoes to cart", "What products do you have under $100?"
+- Watch the product grid auto-filter when AI searches
+- Simulate purchases (checkout flow)
 - View your order history
+
+**Testing AI Features**:
+```
+User: "Show me shoes"
+→ AI uses filterProducts tool
+→ Product grid filters to show only shoes
+→ Blue "AI Filter Active" banner appears
+
+User: "Show me products under $50"
+→ AI filters by price
+→ Grid updates automatically
+
+User: "Add Brown Shoes to my cart"
+→ AI uses addToCart tool
+→ Cart updates in sidebar
+```
 
 ## 📋 Database Schema
 
@@ -335,6 +363,77 @@ This creates:
 **RolesPermissions**
 - Fine-grained access control
 - CRUD permissions per role/module
+
+## 🤖 AI Architecture (Vercel AI SDK + MCP)
+
+### Why Vercel AI SDK?
+
+We migrated from direct OpenAI SDK to **Vercel AI SDK v5** for better developer experience and capabilities:
+
+1. **Structured Tool Calling (MCP)** - Define tools with Zod schemas for type safety
+2. **Automatic Type Inference** - No manual type annotations needed
+3. **Callback System** - `onStepFinish` for real-time tool execution monitoring
+4. **Better Error Handling** - Built-in retry and error management
+5. **Multi-model Support** - Easy to switch between OpenAI, Anthropic, etc.
+
+### AI Tool Architecture
+
+```typescript
+// Example: filterProducts tool
+filterProducts: tool({
+  description: 'Search and filter products...',
+  inputSchema: z.object({
+    search: z.string().optional(),
+    price_max: z.number().optional(),
+    brand: z.string().optional()
+  }),
+  execute: async ({ search, price_max, brand }) => {
+    // Query database
+    const products = await prisma.product.findMany({...});
+
+    // Return structured data + productIds for UI filtering
+    return {
+      success: true,
+      products: [...],
+      productIds: products.map(p => p.id), // ← Key for UI sync
+      filterApplied: { search, price_max, brand }
+    };
+  }
+})
+```
+
+### AI → UI Synchronization Flow
+
+When a user asks "Show me shoes under $50":
+
+1. **AI calls `filterProducts` tool** with `{ search: "shoes", price_max: 50 }`
+2. **Tool returns matching products + productIds**
+3. **chatService captures productIds** via `onStepFinish` callback
+4. **API returns** `{ message: "...", productIds: [...] }`
+5. **useChat hook** sets `productFilter` state
+6. **ChatBox component** emits filter via `onProductFilter` callback
+7. **StorePageClient** filters product grid to show only matching IDs
+8. **User sees filtered products** with blue "AI Filter Active" banner
+
+This creates a seamless experience where the AI assistant and product grid are synchronized.
+
+### Available AI Tools
+
+| Tool | Purpose | Parameters |
+|------|---------|------------|
+| `filterProducts` | Search/filter products | search, brand, category, price_min/max, color |
+| `showProductDetails` | Get product info | product_id |
+| `addToCart` | Add item to cart | product_id, quantity |
+| `removeFromCart` | Remove from cart | product_id |
+| `getCartSummary` | View cart contents | none |
+
+### AI Personality
+
+The assistant is configured with:
+- 🎨 **Friendly tone** with emojis (👋 🏃‍♀️ 👕 ✅)
+- 💬 **Conversational style** - not robotic
+- 🎯 **Helpful follow-ups** - guides shopping journey
+- ✅ **Tool-first approach** - always uses tools for real data
 
 ## 🔐 Security Features
 
@@ -399,11 +498,15 @@ Built with shadcn/ui following Atomic Design principles:
 - Custom branding per store (logo, colors)
 - Unique URLs for each store
 
-### AI Integration
-- Context-aware product recommendations
-- Natural language product search
+### AI Integration (Vercel AI SDK)
+- **Model Context Protocol (MCP)** for structured tool calling
+- **Automatic UI Synchronization**: AI product searches trigger real-time grid filtering
+- Context-aware product recommendations with personality
+- Natural language product search ("Show me shoes under $100")
+- Interactive shopping assistance with emojis and friendly tone
 - Store-specific information responses
-- Token usage tracking and limits
+- Token usage tracking and limits (gpt-4o-mini for cost efficiency)
+- Tool-based architecture for extensibility
 
 ### Purchase Simulation
 - Complete checkout flow
@@ -418,6 +521,38 @@ Built with shadcn/ui following Atomic Design principles:
 - Activity audit trail
 
 ## 🐛 Troubleshooting
+
+### Purchase 403 Error
+
+If you get a 403 Forbidden error when trying to make a purchase:
+
+1. **Check Console Logs** - Look for `[Purchase] Session check:` and `[Purchase] Request data:` in the server terminal
+2. **Verify Store Match** - Make sure `userStoreId` matches `requestStoreId`
+3. **Common Causes**:
+   - User registered at Store A but trying to buy from Store B (working as designed - users can only buy from their registered store)
+   - Session expired - log out and log back in
+   - Wrong role - only END_USER can make purchases
+
+**Debug Steps**:
+```bash
+# 1. Check server console output
+# You should see detailed logs like:
+[Purchase] Session check: { hasSession: true, userId: '...', userRole: 'END_USER', userStoreId: '...' }
+[Purchase] Request data: { storeId: '...', userStoreId: '...', itemCount: 2, totalAmount: 100 }
+
+# 2. If userStoreId !== storeId, you're at the wrong store
+# Solution: Navigate to your registered store URL
+
+# 3. If userRole !== 'END_USER', log in as an end user
+```
+
+### AI Chat Not Filtering Products
+
+If AI responds but products don't filter:
+
+1. **Check Browser Console** - Look for `[AI SDK]` logs
+2. **Verify Tool Calls** - Should see `toolNames: ['filterProducts']`
+3. **Check Product IDs** - Should see `productIds: [...]` in response
 
 ### Database Connection Issues
 ```bash
@@ -457,13 +592,14 @@ npm install
 5. **[src/services/adminService.ts](src/services/adminService.ts)** - Admin dashboard data
 6. **[src/services/storeService.ts](src/services/storeService.ts)** - Store and product management
 7. **[src/services/userService.ts](src/services/userService.ts)** - End user operations
-8. **[src/services/chatService.ts](src/services/chatService.ts)** - OpenAI integration
-9. **[src/services/purchaseService.ts](src/services/purchaseService.ts)** - Purchase simulation
+8. **[src/services/chatService.ts](src/services/chatService.ts)** - Vercel AI SDK integration with tool calling
+9. **[src/services/mcpService.ts](src/services/mcpService.ts)** - Model Context Protocol tools implementation
+10. **[src/services/purchaseService.ts](src/services/purchaseService.ts)** - Purchase simulation
 
 ### Main Routes
-10. **[src/app/admin-dashboard/page.tsx](src/app/admin-dashboard/page.tsx)** - Admin dashboard
-11. **[src/app/store-dashboard/[storeName]/page.tsx](src/app/store-dashboard/[storeName]/page.tsx)** - Client dashboard
-12. **[src/app/store/[storeName]/page.tsx](src/app/store/[storeName]/page.tsx)** - Public store page
+11. **[src/app/admin-dashboard/page.tsx](src/app/admin-dashboard/page.tsx)** - Admin dashboard
+12. **[src/app/store-dashboard/[storeName]/page.tsx](src/app/store-dashboard/[storeName]/page.tsx)** - Client dashboard
+13. **[src/app/store/[storeName]/page.tsx](src/app/store/[storeName]/page.tsx)** - Public store page with AI chat
 
 ## 🎓 Learning Resources
 
@@ -472,10 +608,12 @@ This project demonstrates:
 - **TypeScript** - Type-safe development
 - **Prisma ORM** - Type-safe database access
 - **NextAuth.js** - Production-ready authentication
-- **OpenAI API** - AI integration
+- **Vercel AI SDK** - Modern AI integration with tool calling (MCP)
+- **OpenAI GPT-4o-mini** - Cost-effective AI model for production
 - **Multi-tenant architecture** - Isolated data per tenant
 - **Role-based access control** - Granular permissions
 - **Atomic Design** - Component organization pattern
+- **Real-time UI synchronization** - AI actions trigger UI updates
 
 ## 📄 License
 
