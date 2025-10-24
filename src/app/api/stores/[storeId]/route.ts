@@ -8,6 +8,10 @@ import { authOptions } from '@/lib/auth';
 import prisma from "@/lib/prisma";
 import { updateStore } from '@/services/storeService';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /**
  * GET /api/stores/[storeId]
  * 

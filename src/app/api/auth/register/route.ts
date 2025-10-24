@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/services/authService";
 import { RegisterData } from "@/types";
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/auth/register
  * 
