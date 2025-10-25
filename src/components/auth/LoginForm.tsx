@@ -49,7 +49,7 @@ export function LoginForm() {
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!formData.email || !formData.password) {
       return;
@@ -119,16 +119,6 @@ export function LoginForm() {
         >
           Register here
         </Link>
-      </div>
-
-      {/* Demo Credentials (for testing) */}
-      <div className="border-t pt-4 mt-4">
-        <p className="text-xs text-gray-500 mb-2">Demo Credentials:</p>
-        <div className="text-xs text-gray-600 space-y-1">
-          <p><strong>Admin:</strong> admin@example.com / admin123</p>
-          <p><strong>Client:</strong> client@example.com / client123</p>
-          <p><strong>User:</strong> user@example.com / user123</p>
-        </div>
       </div>
     </form>
   );
