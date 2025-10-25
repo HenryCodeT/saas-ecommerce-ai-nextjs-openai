@@ -187,7 +187,7 @@ export async function getAIResponse(context: ChatContext): Promise<ChatResponse>
     console.log('[MCP] Initial OpenAI response:', {
       hasToolCalls: !!responseMessage?.tool_calls,
       toolCallCount: responseMessage?.tool_calls?.length || 0,
-      toolNames: responseMessage?.tool_calls?.map(tc => tc.function.name) || [],
+      toolNames: responseMessage?.tool_calls?.filter(tc => tc.type === 'function').map(tc => tc.function.name) || [],
       hasContent: !!responseMessage?.content
     });
 
@@ -203,6 +203,8 @@ export async function getAIResponse(context: ChatContext): Promise<ChatResponse>
 
       // Execute each tool call
       for (const toolCall of responseMessage.tool_calls) {
+        if (toolCall.type !== 'function') continue;
+
         const toolName = toolCall.function.name;
         const toolArgs = JSON.parse(toolCall.function.arguments);
 
@@ -216,7 +218,7 @@ export async function getAIResponse(context: ChatContext): Promise<ChatResponse>
           filteredProductIds = toolResult.productIds;
           appliedFilter = toolResult.filterApplied;
           console.log('[MCP] Captured product filter:', {
-            count: filteredProductIds.length,
+            count: filteredProductIds?.length || 0,
             productIds: filteredProductIds,
             filter: appliedFilter
           });

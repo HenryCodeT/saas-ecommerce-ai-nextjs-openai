@@ -12,12 +12,13 @@
 
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import OpenAI from 'openai';
 
 // ============================================================================
 // MCP Tool Definitions
 // ============================================================================
 
-export const MCP_TOOLS = [
+export const MCP_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: 'function' as const,
     function: {
